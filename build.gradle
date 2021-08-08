@@ -1,0 +1,90 @@
+plugins {
+    id 'java'
+    id 'com.google.protobuf' version '0.8.17'
+}
+
+group 'org.bench.transports'
+version '0.0.1-SNAPSHOT'
+
+apply plugin: 'com.google.protobuf'
+apply plugin: 'idea'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.8.0"
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.39.0'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}
+
+project.beforeEvaluate {
+    compileJava.dependsOn processResources
+    compileJava.dependsOn generateProto
+}
+
+sourceCompatibility = '11'
+targetCompatibility = '11'
+
+ext {
+    grpcVersion = "1.39.0"
+    kafkaClientsVersion = "2.8.0"
+    lombokVersion = "1.18.8"
+    slfjVersion = "1.7.28"
+    dotEnvVersion = "5.2.2"
+    javaxAannotationApiVersion = "1.3.2"
+    fastUtilVersion = "8.5.4"
+    apacheCommonsMathVersion = "3.6.1"
+}
+
+dependencies {
+
+    /* lombok for annotation processing */
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    /* logger */
+    implementation "org.slf4j:slf4j-api:${slfjVersion}"
+    implementation "org.slf4j:slf4j-simple:${slfjVersion}"
+
+    /* gRPC compiler */
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+
+    /* Kafka */
+    implementation "org.apache.kafka:kafka-clients:${kafkaClientsVersion}"
+
+    /* env vars loader */
+    implementation "io.github.cdimascio:java-dotenv:${dotEnvVersion}"
+
+    implementation "javax.annotation:javax.annotation-api:${javaxAannotationApiVersion}"
+
+    /* primitive collections */
+    implementation "it.unimi.dsi:fastutil:$fastUtilVersion"
+
+    /* apache commons-math */
+    implementation "org.apache.commons:commons-math3:$apacheCommonsMathVersion"
+}
+
+
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'org.bench.transports.TransportLoadTest'
+        )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}

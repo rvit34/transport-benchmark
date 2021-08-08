@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+option java_package = "org.bench.transports.proto";
+option java_outer_classname = "OrderProto";
+
+package org.bench.transports.proto;
+
+enum OrderSide {
+    ORDER_SIDE_UNKNOWN = 0;
+    ORDER_SIDE_BUY = 1;
+    ORDER_SIDE_SELL = 2;
+}
+
+enum OrderCondition {
+    ORDER_CONDITION_UNKNOWN = 0;
+    ORDER_CONDITION_GOOD_TILL_CANCELLED = 1;
+    ORDER_CONDITION_ALL_OR_NONE = 2;
+    ORDER_CONDITION_IMMEDIATE_OR_CANCEL = 3;
+    ORDER_CONDITION_FILL_OR_KILL = 4;
+}
+
+enum OrderType {
+    ORDER_TYPE_UNKNOWN = 0;
+    ORDER_TYPE_LIMIT = 1;
+    ORDER_TYPE_MARKET = 2;
+}
+
+enum OrderChangeType {
+    ORDER_CHANGE_TYPE_UNKNOWN = 0;
+    ORDER_CHANGE_TYPE_PLACED = 1;
+    ORDER_CHANGE_TYPE_CANCELLED = 2;
+    ORDER_CHANGE_TYPE_FILLED = 3;
+    ORDER_CHANGE_TYPE_REJECTED = 4;
+    ORDER_CHANGE_TYPE_CLOSED = 5;
+}
+
+/**
+ * Request for placing order in matching engine.
+ *
+ * Fields:
+ * - side - side in order book (BUY or SELL)
+ * - condition - order execution condition
+ * - type - type of order (LIMIT, MARKET, ICEBERG)
+ * - base_currency - tag of base currency
+ * - quote_currency - tag of quote currency
+ * - client - client order identifier (optional)
+ * - price - price of order (must be a reminder of base currency's price tick)
+ * - quantity - quantity of order (must be a reminder of quote currency's price tick)
+ * - trader - unique identifier of trader (UUIDv4)
+ * - fee -
+ * - iceberg - structure with iceberg configuration (only for type=ICEBERG)
+ */
+message PlaceOrderRequest {
+    /* deleted id field */
+    reserved 1;
+    /* order enums */
+    OrderSide side = 2;
+    OrderCondition condition = 3;
+    OrderType type = 4;
+    /* (base and quote) currency <=> (base currency and quote currency) */
+    string base_currency = 5; // not empty, size <= 200
+    string quote_currency = 6; // not empty, size <= 200
+    /* custom client order id */
+    string client = 7; // possibly empty; size <= 200
+    /* price and quantity */
+    string price = 8; // possibly empty if type is MARKET; strictly positive numeric(36, 18)
+    string quantity = 9; // not blank, strictly positive
+    string trader = 10; // not blank, size <= 200
+    reserved 11; // deleted revision
+    string fee = 12; // possibly empty
+    /* iceberg */
+    message Iceberg {
+        string visible_quantity = 1;
+    }
+    Iceberg iceberg = 14;
+    string currency_account = 15;
+    string quote_account = 16;
+    string access_country = 17; // from which country user supposedly placed an order
+    Timings timings = 18;
+}
+
+/* all values should be in nanoseconds (required to measure latencies between services communication) */
+message Timings {
+    uint64 requestSentTimestamp = 1; // should be set on sender side
+}
