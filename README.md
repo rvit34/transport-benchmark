@@ -16,6 +16,10 @@ Compare performance for different event-driven transport frameworks.
 _Kafka_\
 Run Kafka & Zoo, see https://kafka.apache.org/documentation/#quickstart)
 
+_Redpanda_ \
+Read docs https://vectorized.io/docs \
+For this benchmark only one system service is used.
+
 _Aeron_\
 Follow to instructions here \
 https://aeroncookbook.com/aeron/media-driver/#c-media-driver \
@@ -66,7 +70,6 @@ If you have issues with C-Media-Driver then you have ability to run it from java
 Read https://github.com/real-logic/Aeron/wiki/Performance-Testing for more details
 
 
-
 **Benchmark**\
 Very simple case: 1 Consumer, 1 Producer and 1 Broker. \
 Producer sends proto-serialized messages (~78bytes each) and consumer receives them and make deserialization.\
@@ -114,12 +117,12 @@ kafka.topic.replicationFactor=1
 Producer/Consumer configurations (no batching):
 ```
 kafka.producers.acks=all
-kafka.producers.lingerMs=0
+kafka.producers.lingerMs=10
 kafka.producers.batchSize=16384
 kafka.producers.bufferMemory=33554432
 kafka.consumers.idleStrategy=NO_IDLE
 kafka.consumers.fetchMinBytes=1
-kafka.consumers.fetchMaxWaitMs=0
+kafka.consumers.fetchMaxWaitMs=500
 kafka.consumers.maxPollIntervalMs=10000
 kafka.consumers.maxPollRecords=1
 kafka.consumers.enableAutoCommit=false
@@ -140,18 +143,29 @@ iterations=100K
 * all latencies in milliseconds
 * latency include time spent on ser/de of proto messages
 
-Results(KAFKA):
+Results(KAFKA v2.8.0):
 
 | RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
 |---|---|---|---|---|---|
-| 1K | 2.2 | 4.6 | 13.7 | 31.2 | 41.5 |
-| 5K | 3.3 | 6.6 | 26.9 | 46.7 | 51.6 |
-| 10K | 3.8 | 7.6 | 22.5 | 30.3 | 33.2 |
-| 25K | 247.2 | 598.2 | 1428 | 1459 | 1461 |
-| 50K | 1870 | 2594 | 43945 | 43983 | 43988 |
-| 100K | 3640 | 4326 | 39069 | 39484 | 39535 |
+| 1K | 3.7 | 6.8 | 12.1 | 25 | 59.9 |
+| 5K | 4.3 | 7.3 | 12.5 | 16.9 | 26.5 |
+| 10K | 5.8 | 9.9 | 25.6 | 54 | 60.5 |
+| 25K | 438 | 763 | 1372 | 1452 | 1456 |
+| 50K | 911 | 2489 | 4073 | 4179 | 4198 |
+| 100K | 1593 | 3169 | 4842 | 4969 | 4992 |
 
-Results(Aeron):
+Results(Redpanda v21.7.6):
+
+| RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
+|---|---|---|---|---|---|
+| 1K | - | - | - | - | - |
+| 5K | 8 | 12.1 | 21.8 | 50.8 | 62 |
+| 10K | 9.4 | 13.9 | 26.1 | 43 | 47 |
+| 25K | 17.7 | 40 | 123.9 | 157.7 | 162.2 |
+| 50K | 624.8 | 875 | 1000 | 1039 | 1043 |
+| 100K | 819 | 1115 | 1357 | 1439 | 1450 |
+
+Results(Aeron v1.34.0):
 
 | RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
 |---|---|---|---|---|---|

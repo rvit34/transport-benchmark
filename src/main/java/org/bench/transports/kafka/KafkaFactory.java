@@ -9,6 +9,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.bench.transports.utils.EnvVars;
 
 import java.util.Properties;
+import java.util.UUID;
 
 public class KafkaFactory {
 
@@ -39,7 +40,7 @@ public class KafkaFactory {
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, EnvVars.getValue("kafka.consumers.maxPollRecords", "500"));
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, EnvVars.getValue("kafka.consumers.enableAutoCommit", "false"));
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, EnvVars.getValue("kafka.consumers.autoOffsetReset", "latest"));
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, EnvVars.getValue("kafka.consumers.groupId", ""));
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, EnvVars.getValue("kafka.consumers.groupId", "load-generator-").concat(UUID.randomUUID().toString()));
         props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, EnvVars.getValue("kafka.consumers.sessionTimeoutMs", "10000"));
         props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, EnvVars.getValue("kafka.consumers.heartbeatIntervalMs", "3000"));
         return props;
