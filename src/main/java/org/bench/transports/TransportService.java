@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 
 public interface TransportService {
 
+    String LOAD_TEST_TOPIC = "load-test-topic";
+
     CompletableFuture<Void> send(MessageLite request, String destination);
 
     /**

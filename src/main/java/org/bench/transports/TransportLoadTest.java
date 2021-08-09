@@ -33,7 +33,7 @@ public class TransportLoadTest {
     private DoubleSet latencies;
     private TransportService transportService;
     private volatile boolean isWarmingUp = false;
-    private final String topicName = EnvVars.getValue("kafka.topic.name", "load-test-topic");
+    private final String topicName = EnvVars.getValue("kafka.topic.name", TransportService.LOAD_TEST_TOPIC);
 
     private final Random random = new Random();
     private final Percentile percentile = new Percentile();
