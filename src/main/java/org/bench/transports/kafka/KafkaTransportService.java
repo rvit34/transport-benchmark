@@ -22,7 +22,6 @@ import java.util.function.Consumer;
 
 import static org.bench.transports.utils.CommonUtil.tryParse;
 
-
 @Slf4j
 public class KafkaTransportService implements TransportService {
 
@@ -52,8 +51,8 @@ public class KafkaTransportService implements TransportService {
         }
         producer.send(record, ((metadata, exception) -> {
             if (exception != null) {
-               log.error("unable to send request to kafka", exception);
-               result.completeExceptionally(exception);
+                log.error("unable to send request to kafka", exception);
+                result.completeExceptionally(exception);
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("record was sent to kafka");

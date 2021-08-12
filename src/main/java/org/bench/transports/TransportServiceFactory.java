@@ -1,7 +1,8 @@
 package org.bench.transports;
 
 import lombok.extern.slf4j.Slf4j;
-import org.bench.transports.aeron.AeronTransportService;
+import org.bench.transports.aeron.AeronArchiveTransportService;
+import org.bench.transports.aeron.AeronInMemoryTransportService;
 import org.bench.transports.kafka.KafkaFactory;
 import org.bench.transports.kafka.KafkaTransportService;
 import org.bench.transports.utils.EnvVars;
@@ -23,7 +24,12 @@ public class TransportServiceFactory {
         }
         if (transport.equals("aeron")) {
             log.info("aeron is used as a transport for order delivery");
-            transportService = new AeronTransportService();
+            boolean isArchiveEnabled = Boolean.parseBoolean(EnvVars.getValue("aeron.archive.enabled", "false"));
+            if (isArchiveEnabled) {
+                transportService = new AeronArchiveTransportService();
+            } else {
+                transportService = new AeronInMemoryTransportService();
+            }
         }
         if (transportService != null) {
             Runtime.getRuntime().addShutdownHook(new Thread(transportService::shutdown));

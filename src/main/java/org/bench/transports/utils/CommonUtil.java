@@ -61,6 +61,13 @@ public class CommonUtil {
         return null;
     }
 
+    public static void removeDirectoryRecursively(String dirPath) throws IOException {
+        Files.walk(Paths.get(dirPath))
+                .map(Path::toFile)
+                .sorted((o1, o2) -> -o1.compareTo(o2))
+                .forEach(File::delete);
+    }
+
     public static void withLock(Lock lock, Runnable code) {
         try {
             lock.lock();

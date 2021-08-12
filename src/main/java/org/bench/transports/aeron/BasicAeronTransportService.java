@@ -7,10 +7,9 @@ import io.aeron.FragmentAssembler;
 import io.aeron.Publication;
 import io.aeron.Subscription;
 import io.aeron.driver.MediaDriver;
-import io.aeron.driver.ThreadingMode;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import lombok.extern.slf4j.Slf4j;
-import org.agrona.concurrent.*;
+import org.agrona.concurrent.UnsafeBuffer;
 import org.bench.transports.TransportService;
 import org.bench.transports.aeron.ex.AeronPublishRequestException;
 import org.bench.transports.aeron.ex.AeronSubscribeException;
@@ -26,84 +25,35 @@ import java.util.function.Consumer;
 import static io.aeron.Publication.*;
 
 @Slf4j
-public class AeronTransportService implements TransportService {
+public class BasicAeronTransportService implements TransportService {
+    @Nullable
+    protected final MediaDriver mediaDriver;
+    protected final Aeron aeronClient;
 
-    private static final int FRAGMENTS_LIMIT = 1;
+    protected static final int FRAGMENTS_LIMIT = 1;
     private static final int PUBLICATION_OR_SUBSCRIPTION_CONNECTED_MAX_WAIT_MS = 30000;
 
-    @Nullable
-    private final MediaDriver mediaDriver;
-    private final Aeron aeron;
+    protected final String channel = EnvVars.getValue("aeron.channel", "aeron:ipc");
 
-    private final String channel = EnvVars.getValue("aeron.channel", "aeron:ipc");
-    private final IdleStrategy subscriberIdleStrategy = takeIdleStrategy(EnvVars.getValue("aeron.mediaDriver.receiver.idleStrategy", "NoOp"));
+    protected final Object2IntArrayMap<String> topicsToStreamIdMap = new Object2IntArrayMap<>(2);
+    protected final Map<String, Publication> registeredPublications = new ConcurrentHashMap<>();
+    protected final Map<String, Subscription> registeredSubscriptions = new ConcurrentHashMap<>();
 
-    private final Object2IntArrayMap<String> topicsToStreamIdMap = new Object2IntArrayMap<>(2);
-    private final Map<String, Publication> registeredPublications = new ConcurrentHashMap<>();
-    private final Map<String, Subscription> registeredSubscriptions = new ConcurrentHashMap<>();
+    protected final ThreadLocal<UnsafeBuffer> bufferTL = ThreadLocal.withInitial(UnsafeBuffer::new);
+    protected final AtomicBoolean subscriberIsPolling = new AtomicBoolean();
 
-    private final ThreadLocal<UnsafeBuffer> bufferTL = ThreadLocal.withInitial(UnsafeBuffer::new);
-    private final AtomicBoolean subscriberIsPolling = new AtomicBoolean();
+    protected final ExecutorService subscriberPollingService = Executors.newSingleThreadExecutor();
 
-    private final ExecutorService subscriberPollingService = Executors.newSingleThreadExecutor();
+   protected final AeronFactory aeronFactory = new AeronFactory();
 
-    public AeronTransportService() {
+    BasicAeronTransportService() {
         initStreamIds();
-        this.mediaDriver = createAndLaunchMediaDriver();
-        this.aeron = createAndConnectAeron();
-    }
-
-    @Nullable
-    private MediaDriver createAndLaunchMediaDriver() {
-        final boolean mediaDriverRequired = Boolean.parseBoolean(EnvVars.getValue("aeron.mediaDriver.required", "true"));
-        if (!mediaDriverRequired) return null;
-        final var threadingMode = EnvVars.getValue("aeron.mediaDriver.threadingMode", "DEDICATED");
-        final boolean isEmbedded = Boolean.parseBoolean(EnvVars.getValue("aeron.mediaDriver.embedded", "true"));
-        final String dirName = EnvVars.getValue("aeron.mediaDriver.dirName", "/dev/shm/aeron-poc");
-        final boolean deleteDirOnShutdown = Boolean.parseBoolean(EnvVars.getValue("aeron.mediaDriver.deleteDirOnShutdown", "true"));
-        final var ctx = new MediaDriver.Context()
-                .termBufferSparseFile(false)
-                .useWindowsHighResTimer(true)
-                .aeronDirectoryName(dirName)
-                .dirDeleteOnShutdown(deleteDirOnShutdown)
-                .threadingMode(ThreadingMode.valueOf(threadingMode))
-                .senderIdleStrategy(takeIdleStrategy(EnvVars.getValue("aeron.mediaDriver.sender.idleStrategy", "NoOp")))
-                .receiverIdleStrategy(subscriberIdleStrategy)
-                .conductorIdleStrategy(takeIdleStrategy(EnvVars.getValue("aeron.mediaDriver.conductor.idleStrategy", "BusySpin")));
-        if (isEmbedded) {
-            return MediaDriver.launchEmbedded(ctx);
-        } else {
-            return MediaDriver.launch(ctx);
-        }
-    }
-
-    private Aeron createAndConnectAeron() {
-        final boolean isEmbedded = Boolean.parseBoolean(EnvVars.getValue("aeron.mediaDriver.embedded", "true"));
-        final String dirName = EnvVars.getValue("aeron.mediaDriver.dirName", "/dev/shm/aeron-poc");
-        log.info("aeron directory name: {}", dirName);
-        final var ctx = new Aeron.Context();
-        if (mediaDriver == null) {
-            ctx.aeronDirectoryName(dirName);
-        } else if (isEmbedded) {
-            ctx.aeronDirectoryName(mediaDriver.aeronDirectoryName());
-        } else {
-            ctx.aeronDirectoryName(dirName);
-        }
-        return Aeron.connect(ctx);
+        this.mediaDriver = aeronFactory.createAndLaunchMediaDriver();
+        this.aeronClient = aeronFactory.createAndConnectAeronClient(mediaDriver);
     }
 
     private void initStreamIds() {
         topicsToStreamIdMap.put(TransportService.LOAD_TEST_TOPIC, 1);
-    }
-
-    private IdleStrategy takeIdleStrategy(String key) {
-        switch (key) {
-            case "NoOp": return new NoOpIdleStrategy();
-            case "BusySpin": return new BusySpinIdleStrategy();
-            case "Yield": return new YieldingIdleStrategy();
-            case "Sleep": return new SleepingIdleStrategy();
-            default: return new NoOpIdleStrategy();
-        }
     }
 
     @Override
@@ -163,6 +113,7 @@ public class AeronTransportService implements TransportService {
             throw new AeronSubscribeException("unable to register subscription");
         }
         final var fragmentAssembler = new FragmentAssembler(new ProtoBufFragmentHandler(onEventConsumer, parser));
+        final var subscriberIdleStrategy = AeronFactory.takeIdleStrategy(EnvVars.getValue("aeron.mediaDriver.receiver.idleStrategy", "NoOp"));
         subscriberIsPolling.set(true);
         subscriberPollingService.submit(() -> {
             while (subscriberIsPolling.get()) {
@@ -172,11 +123,12 @@ public class AeronTransportService implements TransportService {
         });
     }
 
+
     @Nullable
-    private Publication getPublication(String destination) {
+    protected Publication getPublication(String destination) {
         return registeredPublications.computeIfAbsent(destination, __ -> {
             try {
-                return aeron.addPublication(channel, topicsToStreamIdMap.getInt(destination));
+                return aeronClient.addPublication(channel, topicsToStreamIdMap.getInt(destination));
             } catch (Exception ex) {
                 log.error("unable to register publication", ex);
                 return null;
@@ -185,10 +137,10 @@ public class AeronTransportService implements TransportService {
     }
 
     @Nullable
-    private Subscription getSubscription(String source) {
+    protected Subscription getSubscription(String source) {
         return registeredSubscriptions.computeIfAbsent(source, __ -> {
             try {
-                return aeron.addSubscription(channel, topicsToStreamIdMap.getInt(source));
+                return aeronClient.addSubscription(channel, topicsToStreamIdMap.getInt(source));
             } catch (Exception ex) {
                 log.error("unable to register subscription", ex);
                 return null;
@@ -211,8 +163,8 @@ public class AeronTransportService implements TransportService {
             }
         }
 
-        if (!aeron.isClosed()) {
-            CommonUtil.closeQuietly(aeron);
+        if (!aeronClient.isClosed()) {
+            CommonUtil.closeQuietly(aeronClient);
         }
         if (mediaDriver != null) {
             CommonUtil.closeQuietly(mediaDriver);
