@@ -143,7 +143,7 @@ iterations=100K
 * all latencies in milliseconds
 * latency include time spent on ser/de of proto messages
 
-Results(KAFKA v2.8.0):
+Results(KAFKA v2.8.0, default settings, no app fsync):
 
 | RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
 |---|---|---|---|---|---|
@@ -154,7 +154,19 @@ Results(KAFKA v2.8.0):
 | 50K | 911 | 2489 | 4073 | 4179 | 4198 |
 | 100K | 1593 | 3169 | 4842 | 4969 | 4992 |
 
-Results(Redpanda v21.7.6):
+Results(KAFKA v2.8.0, default settings, fsync on each msg):
+
+| RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
+|---|---|---|---|---|---|
+| 1K | - | - | - | - | - |
+| 5K | 182 | 198 | 228 | 258 | 277 |
+| 10K | 2484 | 4740 | 8582 | 9464 | 9556 |
+| 25K | 3818 | 8095 | 14338 | 15706 | 15819 |
+| 50K | 4384 | 8994 | 16024 | 17586 | 17722 |
+| 100K | 4313 | 9092 | 16759 | 18459 | 18613 |
+
+
+Results(Redpanda v21.7.6, prod profile, autotuning, fsync on each msg by default):
 
 | RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
 |---|---|---|---|---|---|
@@ -165,7 +177,7 @@ Results(Redpanda v21.7.6):
 | 50K | 624.8 | 875 | 1000 | 1039 | 1043 |
 | 100K | 819 | 1115 | 1357 | 1439 | 1450 |
 
-Results(Aeron v1.34.0):
+Results(Aeron IPC, only in memory, v1.34.0):
 
 | RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
 |---|---|---|---|---|---|
