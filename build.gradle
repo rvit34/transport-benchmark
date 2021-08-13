@@ -42,6 +42,7 @@ ext {
     grpcVersion = "1.39.0"
     kafkaClientsVersion = "2.8.0"
     aeronVersion = "1.34.0"
+    chronicleQueueVersion = "5.21ea87"
     lombokVersion = "1.18.8"
     slfjVersion = "1.7.28"
     dotEnvVersion = "5.2.2"
@@ -53,26 +54,29 @@ ext {
 dependencies {
 
     /* lombok for annotation processing */
-    compileOnly "org.projectlombok:lombok:${lombokVersion}"
-    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
 
     /* logger */
-    implementation "org.slf4j:slf4j-api:${slfjVersion}"
-    implementation "org.slf4j:slf4j-simple:${slfjVersion}"
+    implementation "org.slf4j:slf4j-api:$slfjVersion"
+    implementation "org.slf4j:slf4j-simple:$slfjVersion"
 
     /* gRPC compiler */
-    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "io.grpc:grpc-protobuf:$grpcVersion"
 
     /* Kafka */
-    implementation "org.apache.kafka:kafka-clients:${kafkaClientsVersion}"
+    implementation "org.apache.kafka:kafka-clients:$kafkaClientsVersion"
 
     /* Aeron */
     implementation "io.aeron:aeron-all:$aeronVersion"
 
-    /* env vars loader */
-    implementation "io.github.cdimascio:java-dotenv:${dotEnvVersion}"
+    /* Chronicle Queue */
+    implementation "net.openhft:chronicle-queue:$chronicleQueueVersion"
 
-    implementation "javax.annotation:javax.annotation-api:${javaxAannotationApiVersion}"
+    /* env vars loader */
+    implementation "io.github.cdimascio:java-dotenv:$dotEnvVersion"
+
+    implementation "javax.annotation:javax.annotation-api:$javaxAannotationApiVersion"
 
     /* primitive collections */
     implementation "it.unimi.dsi:fastutil:$fastUtilVersion"

@@ -69,6 +69,9 @@ If you have issues with C-Media-Driver then you have ability to run it from java
 ```
 Read https://github.com/real-logic/Aeron/wiki/Performance-Testing for more details
 
+_Chronicle Queue_\
+
+Don't require specific installation. All you need is your Linux.
 
 **Benchmark**\
 Very simple case: 1 Consumer, 1 Producer and 1 Broker. \
@@ -212,6 +215,17 @@ Results(Aeron v1.34.0, IPC channel, only in shared memory):
 | 25K | 0.38 | 1 | 4.8 | 4.9 | 4.9 |
 | 50K | 1.1 | 3.8 | 7.7 | 8.8 | 8.8 |
 | 100K | 1.3 | 3.3 | 7.2 | 8.1 | 8.3 |
+
+Results(Chronicle Queue, shared memory, flush on disk on OS background):
+
+| RPS/Latency | 25th | 50th | 90th | 99th | 99.9th |
+|---|---|---|---|---|---|
+| 1K | 0.75 | 1.8 | 4.3 | 8 | 10.3 |
+| 5K | 0.18 | 0.68 | 3.7 | 19.5 | 24 |
+| 10K | 0.2 | 0.52 | 2.6 | 5.9 | 6.6 |
+| 25K | 0.2 | 0.52 | 2.9 | 8.9 | 9.2 |
+| 50K | 0.2 | 0.7 | 2.7 | 4.9 | 8.1 |
+| 100K | 0.4 | 1 | 3 | 3.9 | 7.9 |
 
 **Troubleshooting**
 

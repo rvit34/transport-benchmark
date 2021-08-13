@@ -3,6 +3,7 @@ package org.bench.transports;
 import lombok.extern.slf4j.Slf4j;
 import org.bench.transports.aeron.AeronArchiveTransportService;
 import org.bench.transports.aeron.AeronInMemoryTransportService;
+import org.bench.transports.chronicle.ChronicleQueueTransportService;
 import org.bench.transports.kafka.KafkaFactory;
 import org.bench.transports.kafka.KafkaTransportService;
 import org.bench.transports.utils.EnvVars;
@@ -31,10 +32,14 @@ public class TransportServiceFactory {
                 transportService = new AeronInMemoryTransportService();
             }
         }
+        if (transport.equals("chronicle")) {
+            log.info("chronicle queue is used as a transport for order delivery");
+            transportService = new ChronicleQueueTransportService();
+        }
         if (transportService != null) {
             Runtime.getRuntime().addShutdownHook(new Thread(transportService::shutdown));
             return transportService;
         }
-        throw new IllegalArgumentException("env variable 'application.orderTransport' is not recognized. Supported transports [kafka,aeron]");
+        throw new IllegalArgumentException("env variable 'application.orderTransport' is not recognized. Supported transports [kafka,aeron,chronicle]");
     }
 }
